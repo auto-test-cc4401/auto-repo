@@ -160,9 +160,16 @@ them. The diff itself (`src/core/diff.ts`) is a pure function of
 
 Actions run in three phases, because they depend on each other: teams and
 repositories are created first, then permissions are granted, then memberships
-change. Within a phase, work runs concurrently against a bounded pool, with
+change. Within a phase, reads run concurrently against a bounded pool, with
 Octokit's retry and throttling plugins handling primary and secondary rate
 limits.
+
+Writes are another matter. Octokit's throttling plugin serializes every mutating
+request and spaces them one second apart, which is deliberate — it is what keeps
+GitHub from applying a secondary rate limit — but it sets the floor on how long
+a run takes. A full course of roughly twenty teams and a hundred students is
+around 170 write requests, so expect `apply` to take about three minutes. It is
+working, not hung.
 
 Each action succeeds or fails on its own. A failure is recorded and the run
 continues, so one unreachable account does not discard the rest of the results.
@@ -198,8 +205,21 @@ pnpm build
 ```
 
 Tests run without network access. The diff engine and roster normalization are
-pure functions and carry most of the coverage; API interaction is tested against
-a stubbed client.
+pure functions and carry most of the coverage. `test/e2e.test.ts` goes further
+and drives the built CLI end to end against a local stub of the GitHub API
+(`test/support/github-stub.ts`), covering the database writes and report files
+as well. `GITHUB_API_URL` is what points the client at it, and the same variable
+works for GitHub Enterprise Server.
+
+The stub is written to the same understanding of the API as the client, so it
+cannot catch a wrong endpoint path or payload shape. For that there is
+`.github/workflows/dry-run.yml`: a manually triggered run against a real
+organization, taking the org, member logins and a plan-only/apply toggle as
+inputs, with the token supplied as the `DRY_RUN_TOKEN` secret. It refuses to run
+against the live course organization.
+
+Note that `apply` creates teams and repositories that this tool never deletes,
+so anything a dry run creates has to be cleaned up by hand.
 
 ## License
 

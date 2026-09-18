@@ -1,0 +1,169 @@
+# Runs auto-repo against a real GitHub organization, on demand.
+#
+# The end-to-end tests prove the tool's internal wiring against a stub. Only
+# this workflow proves that the endpoint paths and payloads are what GitHub
+# actually accepts.
+name: Dry run
+
+on:
+  workflow_dispatch:
+    inputs:
+      org:
+        description: 'Organization to provision into (a test org, never the course org)'
+        required: true
+        type: string
+      members:
+        description: 'Comma-separated GitHub logins to place on the teams'
+        required: true
+        default: 'Gonxolo'
+        type: string
+      year:
+        description: 'Year used in repository names'
+        required: true
+        default: '2026'
+        type: string
+      semester:
+        description: 'Semester used in repository names'
+        required: true
+        default: '9'
+        type: string
+      apply:
+        description: 'Actually create teams and repositories (leave off for a read-only plan)'
+        required: true
+        default: false
+        type: boolean
+
+# Never run more than one of these at a time against the same org.
+concurrency:
+  group: dry-run-${{ inputs.org }}
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse to touch the live course organization
+        env:
+          TARGET: ${{ inputs.org }}
+        run: |
+          shopt -s nocasematch
+          if [[ "$TARGET" == "DCC-CC4401" ]]; then
+            echo "::error::Refusing to run against the live course organization."
+            exit 1
+          fi
+          echo "Target organization: $TARGET"
+
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Generate configuration and a synthetic roster
+        env:
+          ORG: ${{ inputs.org }}
+          MEMBERS: ${{ inputs.members }}
+          YEAR: ${{ inputs.year }}
+          SEMESTER: ${{ inputs.semester }}
+        run: |
+          cat > course.config.yaml <<EOF
+          org: ${ORG}
+          course: CC4401
+          year: '${YEAR}'
+          semester: '${SEMESTER}'
+          permission: push
+          teamSize:
+            min: 1
+            max: 6
+          autoInit: true
+          roster: ./roster/dry-run.csv
+          databasePath: ./auto-repo.sqlite
+          reportDir: ./reports
+          EOF
+
+          mkdir -p roster
+          # Two teams, so team creation, naming and the per-team grant are all
+          # exercised. Members are spread across both.
+          {
+            echo 'Nombre completo,Email Address,Sección,Ingrese su usuario de Github,Equipo'
+            i=0
+            IFS=',' read -ra LOGINS <<< "$MEMBERS"
+            for login in "${LOGINS[@]}"; do
+              login="$(echo "$login" | xargs)"
+              [ -z "$login" ] && continue
+              team=$(( i % 2 + 1 ))
+              echo "Dry Run ${login},dry-run-${login}@example.invalid,1 - Test,${login},${team}"
+              i=$(( i + 1 ))
+            done
+          } > roster/dry-run.csv
+
+          echo '--- course.config.yaml ---'
+          cat course.config.yaml
+          echo '--- roster ---'
+          cat roster/dry-run.csv
+
+      - name: doctor
+        env:
+          GITHUB_TOKEN: ${{ secrets.DRY_RUN_TOKEN }}
+        run: node dist/cli/index.js doctor
+
+      - name: roster import
+        env:
+          GITHUB_TOKEN: ${{ secrets.DRY_RUN_TOKEN }}
+        run: node dist/cli/index.js roster import
+
+      - name: plan
+        env:
+          GITHUB_TOKEN: ${{ secrets.DRY_RUN_TOKEN }}
+        run: node dist/cli/index.js plan
+
+      # Everything below only runs when `apply` was explicitly ticked.
+      - name: apply
+        if: ${{ inputs.apply }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.DRY_RUN_TOKEN }}
+        run: node dist/cli/index.js apply
+
+      - name: apply again (must report no changes)
+        if: ${{ inputs.apply }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.DRY_RUN_TOKEN }}
+        run: |
+          output=$(node dist/cli/index.js apply)
+          echo "$output"
+          if ! grep -q 'Nothing to do' <<< "$output"; then
+            echo "::error::Second apply was not a no-op; the reconcile is not idempotent against the real API."
+            exit 1
+          fi
+
+      - name: status
+        if: ${{ inputs.apply }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.DRY_RUN_TOKEN }}
+        run: node dist/cli/index.js status
+
+      - name: report
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.DRY_RUN_TOKEN }}
+        run: node dist/cli/index.js report || true
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-reports
+          path: reports/
+          if-no-files-found: warn
+
+      - name: What was created
+        if: ${{ inputs.apply }}
+        run: |
+          echo "### Dry run finished" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "auto-repo never deletes teams or repositories. Anything created in" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`${{ inputs.org }}\` by this run has to be removed by hand." >> "$GITHUB_STEP_SUMMARY"

@@ -34,8 +34,8 @@ function fakeClient(failing: string[] = []): GitHubClient {
 
 describe('executePlan', () => {
   it('keeps going after a failure instead of aborting the run', async () => {
-    // This is the v1 bug in miniature: one bad username rejected Promise.all,
-    // skipped the .then(), and destroyed the log of everyone who succeeded.
+    // One unreachable account must not discard the results of the rest of the
+    // plan, nor the audit record of what already succeeded.
     const plan = [
       action({ kind: 'add-member', login: 'ana', summary: 'Add ana' }),
       action({ kind: 'add-member', login: 'ghost', summary: 'Add ghost' }),

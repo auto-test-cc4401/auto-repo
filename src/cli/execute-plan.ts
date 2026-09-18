@@ -32,9 +32,9 @@ export interface ApplyOptions {
 /**
  * Execute a plan.
  *
- * Every action is isolated: a failure is recorded and the run continues. This is
- * the direct fix for the v1 bug where a single 404 rejected Promise.all, skipped
- * the .then(), and threw away the log of everything that had already succeeded.
+ * Every action is isolated: a failure is recorded against that action and the
+ * run continues, so one unreachable account or transient error does not discard
+ * the results of everything else in the plan.
  */
 export async function executePlan(
   client: GitHubClient,

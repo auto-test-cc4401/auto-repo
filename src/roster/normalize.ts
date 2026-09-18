@@ -22,9 +22,9 @@ export interface LoginResult {
 /**
  * Recover a bare GitHub login from whatever the student typed into the form.
  *
- * Six students in 2026-1 pasted a full profile URL
- * (e.g. `https://github.com/jensen-facts`), which the previous tool sent
- * verbatim to the API and got a 404 for, aborting the whole run.
+ * Pasting a full profile URL (`https://github.com/someone`) is common; the API
+ * returns 404 for anything but a bare login, so the value is normalized before
+ * it is used.
  */
 export function normalizeGithubLogin(raw: string | null | undefined): LoginResult {
   const trimmed = (raw ?? '').trim();

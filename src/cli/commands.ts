@@ -115,7 +115,7 @@ async function computePlan(options: GlobalOptions): Promise<PlanResult & { clien
   );
 
   // Students whose account does not exist are excluded from the desired state
-  // rather than attempted: the API call would 404 and, in v1, take the run with it.
+  // rather than attempted, and recorded as an error on the run report.
   const usable: Student[] = roster.students.map((student) => {
     const login = student.githubLogin?.toLowerCase();
     if (login && checked.get(login)?.exists === false) {

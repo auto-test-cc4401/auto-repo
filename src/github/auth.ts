@@ -15,10 +15,9 @@ export interface ResolvedAuth {
  * Resolve credentials from the environment, preferring a GitHub App when one is
  * configured.
  *
- * Both paths exist deliberately: a PAT is the zero-setup option for a local
- * run, but it belongs to whoever is coordinating this semester and dies when
- * they graduate. An org-owned App survives staff turnover, which is the failure
- * mode that left the previous tool unmaintained.
+ * A PAT is the zero-setup option for a local run, but it is tied to one
+ * person's account. An org-owned App is not, so it keeps working across staff
+ * turnover and is the better choice for anything shared or automated.
  */
 export function resolveAuth(env: NodeJS.ProcessEnv = process.env): ResolvedAuth {
   const appId = env.GITHUB_APP_ID?.trim();

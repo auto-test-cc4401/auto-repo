@@ -1,6 +1,10 @@
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildRoster, toDesiredState, validate } from '../src/roster/index.js';
 import { csvImporter } from '../src/roster/importers/csv.js';
+import { jsonImporter } from '../src/roster/importers/json.js';
 import type { RawRow } from '../src/roster/normalize.js';
 import type { Student } from '../src/core/types.js';
 import { testConfig } from './helpers.js';
@@ -149,5 +153,52 @@ describe('toDesiredState', () => {
       repoName: '2026-2-CC4401-grupo-5',
       memberLogins: ['alpha'],
     });
+  });
+});
+
+describe('json importer', () => {
+  it('reads the legacy students_info.json shape', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'auto-repo-json-'));
+    const path = join(dir, 'students_info.json');
+    // Note that `seccion` and `team` are numbers here, where a CSV source would
+    // always deliver strings.
+    await writeFile(
+      path,
+      JSON.stringify([
+        { name: 'Nombre Apellido', seccion: 1, github_user: 'BritoEspNya', team: 5 },
+        { name: 'Otro Nombre', seccion: 2, github_user: 'amaro-carvajal', team: 4 },
+      ]),
+      'utf8',
+    );
+
+    const roster = buildRoster(await jsonImporter.load(path), config);
+
+    expect(roster.students).toHaveLength(2);
+    expect(roster.students[0]).toMatchObject({
+      fullName: 'Nombre Apellido',
+      githubLogin: 'BritoEspNya',
+      section: 1,
+      team: 5,
+    });
+  });
+
+  it('reports placeholder usernames rather than sending them to the API', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'auto-repo-json-'));
+    const path = join(dir, 'sample_students.json');
+    // GitHub logins cannot contain underscores, so a template value left
+    // unedited is caught during import instead of failing as a 404 at apply.
+    await writeFile(
+      path,
+      JSON.stringify([
+        { name: 'Nombre/s Apellido/s', seccion: 1, github_user: 'github_user_1', team: 5 },
+      ]),
+      'utf8',
+    );
+
+    const roster = buildRoster(await jsonImporter.load(path), config);
+
+    expect(roster.students[0]!.githubLogin).toBeNull();
+    expect(roster.issues.some((i) => i.message.includes('not a valid GitHub username'))).toBe(true);
+    expect(roster.missingGithub).toHaveLength(1);
   });
 });

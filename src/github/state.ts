@@ -115,11 +115,11 @@ export interface LoginCheck {
 }
 
 /**
- * Verify every login against the API *before* any mutation runs.
+ * Verify every login against the API before any mutation runs.
  *
- * This is the fix for the original tool's fatal flaw: one typo'd username threw
- * inside Promise.all, rejected the whole run, and skipped writing the log, so
- * the record of the students who *had* been added was lost.
+ * Accounts that do not exist are reported and excluded from the plan, so a
+ * mistyped username in the roster never surfaces as a failure partway through
+ * provisioning.
  */
 export async function checkLogins(
   client: GitHubClient,

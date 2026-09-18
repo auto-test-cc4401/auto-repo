@@ -3,8 +3,10 @@ import type { RawRow } from '../normalize.js';
 import { resolveHeaders, rowFromRecord, type RosterImporter } from './index.js';
 
 /**
- * Accepts both the v1 shape (`{name, seccion, github_user, team}`) and the
- * spreadsheet-export shape, so an existing students_info.json still imports.
+ * Reads a JSON array of student records.
+ *
+ * Handles both spreadsheet-export headers and the legacy `students_info.json`
+ * shape (`{name, seccion, github_user, team}`).
  */
 export const jsonImporter: RosterImporter = {
   name: 'json',
@@ -20,8 +22,8 @@ export const jsonImporter: RosterImporter = {
     const keys = new Set<string>();
     for (const record of records) for (const key of Object.keys(record)) keys.add(key);
 
-    // v1's `github_user` normalizes to "github user" and matches that alias,
-    // so an old students_info.json needs no special-casing here.
+    // `github_user` normalizes to "github user" and matches that alias, so the
+    // legacy key needs no special-casing here.
     const mapping = resolveHeaders([...keys]);
     return records.map((record): RawRow => rowFromRecord(record, mapping));
   },

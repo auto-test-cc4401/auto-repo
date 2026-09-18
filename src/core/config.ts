@@ -3,9 +3,9 @@ import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
 
 /**
- * Course configuration. Everything here is semester-specific and therefore
- * lives in a file rather than in source: v1 hardcoded year/semester inside
- * run(), which is how the code drifted out of sync with its own README.
+ * Course configuration. Every value here changes between semesters, so it lives
+ * in a file rather than in source and the code is identical from one term to
+ * the next.
  */
 export const courseConfigSchema = z.object({
   org: z.string().min(1),

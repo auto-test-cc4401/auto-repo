@@ -10,8 +10,8 @@ import {
 } from '../src/roster/normalize.js';
 
 describe('normalizeGithubLogin', () => {
-  // Six students in the real 2026-1 export pasted a profile URL. The old tool
-  // sent these verbatim and got a 404, which aborted the entire run.
+  // Pasted profile URLs are the single most common malformed entry: six of them
+  // appear in the 2026-1 survey export these cases are drawn from.
   it.each([
     ['https://github.com/jensen-facts', 'jensen-facts'],
     ['https://github.com/pecerax', 'pecerax'],

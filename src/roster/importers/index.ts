@@ -67,8 +67,8 @@ export function rowFromRecord(
   record: Record<string, unknown>,
   mapping: Partial<Record<keyof RawRow, string>>,
 ): RawRow {
-  // Values arrive as strings from CSV but can be numbers from JSON — v1's
-  // students_info.json stored `seccion` and `team` as numbers.
+  // Values arrive as strings from CSV, but JSON sources commonly store section
+  // and team as numbers, so every value is coerced before it is trimmed.
   const pick = (field: keyof RawRow): string | null => {
     const column = mapping[field];
     if (!column) return null;

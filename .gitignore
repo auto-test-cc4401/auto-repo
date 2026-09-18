@@ -1,0 +1,24 @@
+# Dependencies / build
+node_modules/
+dist/
+
+# Course data — personal information, never committed.
+# These are anchored to the repository root so they cannot swallow source
+# directories such as src/roster/ or test fixtures.
+/course.config.yaml
+/roster/
+/reports/
+/*.csv
+/*.sqlite
+/*.sqlite-journal
+/*.sqlite-wal
+
+# Secrets
+.env
+.env.*
+*.pem
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

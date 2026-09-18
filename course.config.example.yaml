@@ -1,0 +1,34 @@
+# Copy to course.config.yaml and fill in. course.config.yaml is gitignored
+# because it names a real organization and your teaching team.
+
+org: DCC-CC4401
+course: CC4401
+year: '2026'
+semester: '2'          # 1 = autumn, 2 = spring, 3 = summer
+
+# Number of sections this semester. 2026-1 had two, 2026-2 has one.
+# Team numbers must still be unique across sections.
+sections: 1
+
+# Permission each group's team gets on its own repository.
+# 'push' lets students do all normal work but not delete the repo or
+# remove their teammates, which 'admin' would allow.
+permission: push
+
+teamSize:
+  min: 4
+  max: 6
+
+# GitHub logins of the teaching team. Anyone here appearing in the roster as a
+# student is reported rather than provisioned.
+docentes: []
+
+# Repositories are created bare — no template, no labels, no milestones.
+# autoInit creates an initial README commit so the repo has a real default
+# branch. Without it a new repo has no commits and no main, which confuses
+# students pushing for the first time.
+autoInit: true
+
+roster: ./roster/students.csv
+databasePath: ./auto-repo.sqlite
+reportDir: ./reports

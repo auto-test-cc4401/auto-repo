@@ -1,0 +1,38 @@
+{
+  "name": "auto-repo",
+  "version": "2.0.0",
+  "description": "Idempotent GitHub repository and team provisioning for CC4401 course groups",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "auto-repo": "./dist/cli/index.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@octokit/auth-app": "^7.1.5",
+    "better-sqlite3": "^11.8.1",
+    "commander": "^13.1.0",
+    "csv-parse": "^7.0.2",
+    "drizzle-orm": "^0.45.2",
+    "octokit": "^4.1.1",
+    "p-limit": "^6.2.0",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.5",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^5.0.1"
+  }
+}

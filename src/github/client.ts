@@ -6,18 +6,24 @@ export interface GitHubClient {
   auth: ResolvedAuth;
 }
 
+const PUBLIC_API = 'https://api.github.com';
+
 /**
  * Build an Octokit client with retry and throttling enabled.
  *
  * The `octokit` package ships the throttling and retry plugins preconfigured,
- * so secondary rate limits — the "endpoint has been spammed" 422/403 the old
- * script tried and failed to detect by hand — are backed off automatically
- * instead of surfacing as a mid-run explosion.
+ * so both primary and secondary rate limits are backed off and retried rather
+ * than surfacing as a failure partway through a run.
+ *
+ * `GITHUB_API_URL` overrides the API host. GitHub Actions and the `gh` CLI
+ * already set it, GitHub Enterprise Server deployments need it, and the
+ * end-to-end tests use it to point at a local stub.
  */
 export function createClient(log: (message: string) => void = console.warn): GitHubClient {
   const auth = resolveAuth();
   const octokit = new Octokit({
     ...auth.options,
+    baseUrl: process.env.GITHUB_API_URL?.trim().replace(/\/$/, '') || PUBLIC_API,
     userAgent: 'auto-repo/2.0',
     throttle: {
       onRateLimit(retryAfter: number, options: { method: string; url: string }, _o: unknown, retryCount: number) {

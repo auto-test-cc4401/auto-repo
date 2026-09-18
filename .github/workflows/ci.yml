@@ -4,8 +4,8 @@ on:
   push:
     branches: ['**']
   pull_request:
-  # The tool is run twice a year. A monthly build surfaces runtime drift
-  # between semesters instead of on provisioning day, which is how v1 died.
+  # The tool is run a few times per semester. A monthly build surfaces runtime
+  # and dependency drift between terms rather than on provisioning day.
   schedule:
     - cron: '0 6 1 * *'
 
@@ -18,11 +18,20 @@ jobs:
         node: ['22', '24']
     steps:
       - uses: actions/checkout@v4
+
+      # Reads the pinned version from package.json "packageManager".
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+          cache: pnpm
+
+      # --frozen-lockfile fails rather than silently updating pnpm-lock.yaml.
+      # Dependency lifecycle scripts stay blocked except for the packages listed
+      # under pnpm.onlyBuiltDependencies in package.json.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
